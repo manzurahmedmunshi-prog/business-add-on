@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 async function getSpeakers() {
   try {
     return await prisma.speaker.findMany({

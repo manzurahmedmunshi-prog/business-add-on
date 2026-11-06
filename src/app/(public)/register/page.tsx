@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import RegisterForm from '@/components/public/RegisterForm';
 
+export const dynamic = 'force-dynamic';
+
 async function getTicketTypes() {
   try {
     return await prisma.ticketType.findMany({
@@ -29,6 +31,7 @@ export default async function RegisterPage({
       {tickets.length === 0 ? (
         <div className="card text-center py-12">
           <p className="text-white/60">Registration is not open yet. Please check back soon.</p>
+          <p className="text-white/40 text-sm mt-2">(Database connection or seed data may still be pending.)</p>
         </div>
       ) : (
         <RegisterForm tickets={tickets} preselectedTicketId={searchParams.ticket} />

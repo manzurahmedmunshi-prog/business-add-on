@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
 import { formatCurrency } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
 
 async function getData() {
   try {
+    const { prisma } = await import('@/lib/prisma');
     const event = await prisma.event.findFirst({
       where: { isPublished: true },
       include: {

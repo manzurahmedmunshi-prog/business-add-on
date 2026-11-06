@@ -1,8 +1,9 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -17,6 +18,7 @@ export default async function AdminDashboard() {
   };
 
   try {
+    const { prisma } = await import('@/lib/prisma');
     const [total, confirmed, speakers, sponsors, challenges] = await Promise.all([
       prisma.registration.count(),
       prisma.registration.count({ where: { status: 'CONFIRMED' } }),
@@ -80,7 +82,7 @@ export default async function AdminDashboard() {
             <li>✓ Registration engine with unique IDs and QR tokens</li>
             <li>✓ Admin login & basic dashboard</li>
             <li>✓ Prisma schema ready for speakers, sponsors, challenges, SPOCs</li>
-            <li className="text-white/40">Next: QR generation, email (Resend), full CRUD modules, Cloudinary uploads</li>
+            <li className="text-white/40">Next: QR generation, email (Resend), full CRUD modules, Vercel Blob uploads</li>
           </ul>
         </div>
       </main>
