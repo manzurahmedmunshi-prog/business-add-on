@@ -4,7 +4,7 @@
 
 A reusable full-stack event management website for the BUSINESS ADD-ON three-day business, innovation & entertainment festival in Mumbai.
 
-Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Prisma**, **Neon PostgreSQL**, **NextAuth**, and ready for **Cloudinary** + **Resend**.
+Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Prisma**, **Neon PostgreSQL**, **NextAuth**, **Vercel Blob**, and ready for **Resend**.
 
 ---
 
@@ -16,7 +16,8 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Prisma**, **Neon 
 - Admin login + basic dashboard with live stats
 - Complete Prisma schema for speakers, sponsors, artists, challenges, SPOCs, check-ins, audit logs
 - Seed data for BUSINESS ADD-ON (tickets, sample challenges, proposed speakers)
-- Student-friendly deployment (GitHub → Vercel, no local terminal required for final deploy)
+- **Vercel Blob** integration for image/file uploads
+- Student-friendly deployment (GitHub → Vercel)
 
 ---
 
@@ -30,9 +31,12 @@ This repository is ready. Just continue with the services below.
 2. Create a new project (choose a region close to India if possible).
 3. Copy the **connection string** (it looks like `postgresql://user:pass@host/neondb?sslmode=require`).
 
-### Step 3 – Create a Cloudinary account (for images later)
-1. Go to [https://cloudinary.com](https://cloudinary.com) and sign up.
-2. From the dashboard copy: **Cloud Name**, **API Key**, **API Secret**.
+### Step 3 – Create a Vercel Blob store
+1. In the [Vercel Dashboard](https://vercel.com/dashboard) go to **Storage**.
+2. Click **Create Database** → choose **Blob**.
+3. Give it a name (e.g. `business-add-on-blob`) and create it.
+4. Vercel will automatically add the `BLOB_READ_WRITE_TOKEN` environment variable to your project once you link it.  
+   You can also copy the token manually from the Blob store settings.
 
 ### Step 4 – (Optional) Resend for emails
 1. Go to [https://resend.com](https://resend.com) and create an API key.
@@ -43,41 +47,29 @@ This repository is ready. Just continue with the services below.
 2. Click **Add New… → Project**.
 3. Import the repository `business-add-on`.
 4. Leave Framework Preset as **Next.js**.
-5. Open **Environment Variables** and add the following one by one:
+5. Open **Environment Variables** and add the following:
 
 | Name | Value | Notes |
 |------|-------|-------|
 | `DATABASE_URL` | your Neon connection string | Required |
-| `NEXTAUTH_SECRET` | any long random string | e.g. generate at https://generate-secret.vercel.app/32 |
+| `NEXTAUTH_SECRET` | any long random string | e.g. https://generate-secret.vercel.app/32 |
 | `NEXTAUTH_URL` | `https://your-project.vercel.app` | Update after first deploy |
-| `CLOUDINARY_CLOUD_NAME` | your cloud name | Required for images |
-| `CLOUDINARY_API_KEY` | your API key | |
-| `CLOUDINARY_API_SECRET` | your API secret | |
+| `BLOB_READ_WRITE_TOKEN` | from Vercel Blob store | Required for uploads |
 | `RESEND_API_KEY` | your Resend key | Optional for now |
 | `RESEND_FROM_EMAIL` | `onboarding@resend.dev` | Optional |
 | `NEXT_PUBLIC_APP_URL` | `https://your-project.vercel.app` | Update after deploy |
 
 6. Click **Deploy**.
 
+> **Tip:** If you create the Blob store *after* importing the project, go to the Blob store → **Connect Project** and select `business-add-on`. Vercel will inject `BLOB_READ_WRITE_TOKEN` automatically.
+
 ### Step 6 – Initialize the database
-After the first deploy succeeds:
-
-1. In Vercel → your project → **Settings → Environment Variables** make sure `DATABASE_URL` is set.
-2. Go to the **Deployments** tab → open the latest deployment → **Runtime Logs** is enough for now.
-3. The easiest student-friendly way to push the schema and seed:
-
-   - Option A (recommended): Use the Vercel CLI only once if you have it, or
-   - Option B: In Neon SQL Editor run the tables manually later, or
-   - Option C: After deploy, visit a one-time setup route (we can add `/api/setup` in a future update).
-
-For the cleanest first experience, after the project is live you (or a mentor) can run locally once:
+After the first deploy succeeds, run once (locally or via a mentor):
 
 ```bash
 npx prisma db push
 npx tsx prisma/seed.ts
 ```
-
-Then the admin account and sample data will exist.
 
 **Default admin login (after seeding):**
 - Email: `admin@businessaddon.in`
@@ -89,18 +81,36 @@ Change this password immediately after first login.
 
 ## Local Development (optional)
 
-If you have Node.js installed:
-
 ```bash
 npm install
 cp .env.example .env.local
-# fill DATABASE_URL and NEXTAUTH_SECRET
+# fill DATABASE_URL, NEXTAUTH_SECRET, and BLOB_READ_WRITE_TOKEN
 npx prisma db push
 npx tsx prisma/seed.ts
 npm run dev
 ```
 
 Open http://localhost:3000
+
+---
+
+## Image Uploads (Vercel Blob)
+
+- Helper: `src/lib/blob.ts`
+- API route: `POST /api/upload` (admin-only)
+- Accepts images (JPEG, PNG, WebP, GIF) and PDF up to 5 MB
+- Returns a public URL you can store in the database
+
+Example usage from an admin form:
+
+```ts
+const formData = new FormData();
+formData.append('file', file);
+formData.append('folder', 'speakers');
+
+const res = await fetch('/api/upload', { method: 'POST', body: formData });
+const { url } = await res.json();
+```
 
 ---
 
@@ -115,9 +125,9 @@ business-add-on/
 │   ├── app/
 │   │   ├── (public)/      # Public pages
 │   │   ├── admin/         # Admin dashboard
-│   │   └── api/           # API routes
+│   │   └── api/           # API routes (register, upload, auth)
 │   ├── components/
-│   ├── lib/               # prisma, auth, utils
+│   ├── lib/               # prisma, auth, blob, utils
 │   └── types/
 ├── .env.example
 ├── package.json
@@ -128,10 +138,10 @@ business-add-on/
 
 ## Next features to add (in order)
 
-1. QR code image generation (Cloudinary or pure server-side)
+1. QR code image generation (server-side + store URL in Vercel Blob)
 2. Confirmation email via Resend
 3. Full admin CRUD for Speakers, Sponsors, Challenges, Ticket Types
-4. Event configuration form in admin
+4. Event configuration form in admin (with logo/banner upload)
 5. SPOC assignment and display on tickets
 6. Check-in scanner page
 7. Registration list + CSV export
@@ -149,6 +159,6 @@ business-add-on/
 
 ## Support
 
-This is the **foundation** version requested. You can keep iterating on the same repository — every new feature can be pushed to `main` and Vercel will auto-deploy.
+This is the **foundation** version. Keep iterating on the same repository — every new feature pushed to `main` will auto-deploy on Vercel.
 
 Repository: https://github.com/manzurahmedmunshi-prog/business-add-on
